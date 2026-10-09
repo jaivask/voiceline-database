@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceVault - Voice Line Sharing Platform</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #f8fafc;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .pulse-ring {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+    <header class="sticky top-0 z-30 bg-slate-900/90 border-b border-slate-800 backdrop-blur">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="resetFilters()">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-waveform text-white text-xl"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-bold bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">VoiceVault</span>
+                    <span class="text-[10px] text-indigo-400 font-semibold tracking-wider block -mt-1">VOICE SHARING HUB</span>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <button onclick="openModal('recordModal')" class="flex items-center space-x-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3.5 py-2 rounded-xl text-sm font-semibold transition hover:scale-105 active:scale-95">
+                    <i class="fa-solid fa-microphone text-red-500"></i>
+                    <span class="hidden sm:inline">Record Voice</span>
+                </button>
+                <button onclick="openModal('uploadModal')" class="flex items-center space-x-2 bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-lg shadow-indigo-600/30 transition hover:scale-105 active:scale-95">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>Upload Audio</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div class="relative rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 p-6 sm:p-10 overflow-hidden shadow-2xl">
+            <div class="relative z-10 max-w-2xl space-y-4">
+                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold">
+                    <i class="fa-solid fa-database text-brand-400"></i>
+                    <span>IndexedDB Persistent Storage</span>
+                </div>
+                <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+                    Your Personal & Community Voice Vault
+                </h1>
+                <p class="text-slate-400 text-sm sm:text-base">
+                    Record from your mic or upload custom voice lines. Audio files are saved directly in your browser database!
+                </p>
+
+                <!-- Search Input Bar -->
+                <div class="pt-2 flex flex-col sm:flex-row gap-3">
+                    <div class="relative flex-grow">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Search voice lines by title or uploader..." class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-11 pr-10 py-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition shadow-inner">
+                        <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+            <h2 class="text-base font-bold text-slate-200 flex items-center space-x-2">
+                <i class="fa-solid fa-list-ul text-brand-400"></i>
+                <span>Voice Lines Library</span>
+                <span id="voiceCountBadge" class="bg-slate-800 text-brand-300 text-xs px-2.5 py-0.5 rounded-full font-mono border border-slate-700">0</span>
+            </h2>
+
+            <div class="flex items-center space-x-3">
+                <span class="text-xs text-slate-400 font-medium whitespace-nowrap">Sort by:</span>
+                <select id="sortBySelect" onchange="renderVoiceLines()" class="bg-slate-900 border border-slate-800 text-slate-300 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-brand-500 cursor-pointer">
+                    <option value="newest">Most Recent</option>
+                    <option value="popular">Most Liked</option>
+                    <option value="alpha">Alphabetical</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="voiceGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- Cards populated dynamically -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden flex flex-col items-center justify-center py-16 text-center bg-slate-900/40 rounded-3xl border border-dashed border-slate-800">
+            <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 text-2xl mb-4">
+                <i class="fa-solid fa-microphone-slash"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-slate-300">No Voice Lines Saved Yet</h3>
+            <p class="text-slate-500 text-sm max-w-sm mt-1 mb-5">Record your microphone or upload an audio file to get started.</p>
+            <div class="flex space-x-3">
+                <button onclick="openModal('recordModal')" class="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 text-xs font-semibold rounded-xl transition">
+                    Record Voice
+                </button>
+                <button onclick="openModal('uploadModal')" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold rounded-xl transition">
+                    Upload Audio
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <div id="bottomPlayer" class="sticky bottom-0 z-40 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md px-4 py-3 shadow-2xl">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <!-- Left: Current Audio Info -->
+            <div class="flex items-center space-x-3 w-full sm:w-1/4 min-w-0">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-600 to-indigo-900 flex items-center justify-center shrink-0 shadow-md">
+                    <i id="playerIcon" class="fa-solid fa-music text-white text-lg"></i>
+                </div>
+                <div class="min-w-0 flex-grow">
+                    <h4 id="playerTitle" class="text-sm font-bold text-white truncate">Select a Voice Line</h4>
+                    <p id="playerUploader" class="text-xs text-slate-400 truncate">Click listen on any card above</p>
+                </div>
+            </div>
+
+            <!-- Center: Playback Controls & Progress Bar -->
+            <div class="flex flex-col items-center w-full sm:w-2/4 space-y-1">
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleLoop()" id="loopBtn" class="text-slate-500 hover:text-slate-300 transition text-sm" title="Loop Toggle">
+                        <i class="fa-solid fa-repeat"></i>
+                    </button>
+                    <button onclick="skipTime(-3)" class="text-slate-400 hover:text-white transition text-sm">
+                        <i class="fa-solid fa-rotate-left"></i>
+                    </button>
+                    <button onclick="toggleMainPlay()" id="mainPlayBtn" class="w-10 h-10 rounded-full bg-brand-600 hover:bg-brand-500 text-white flex items-center justify-center transition shadow-lg shadow-indigo-600/30 active:scale-95">
+                        <i class="fa-solid fa-play text-sm ml-0.5"></i>
+                    </button>
+                    <button onclick="skipTime(3)" class="text-slate-400 hover:text-white transition text-sm">
+                        <i class="fa-solid fa-rotate-right"></i>
+                    </button>
+                    <button onclick="cycleSpeed()" id="speedBtn" class="text-xs text-slate-400 hover:text-white font-mono px-2 py-1 rounded bg-slate-800" title="Playback Speed">
+                        1.0x
+                    </button>
+                </div>
+
+                <div class="w-full flex items-center space-x-3">
+                    <span id="currentTime" class="text-[11px] font-mono text-slate-400 w-10 text-right">0:00</span>
+                    <input type="range" id="playerProgressBar" min="0" max="100" value="0" step="0.1" oninput="seekAudio(this.value)" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                    <span id="totalTime" class="text-[11px] font-mono text-slate-400 w-10">0:00</span>
+                </div>
+            </div>
+
+            <!-- Right: Playback Volume Indicator Bar & Numerical Level -->
+            <div class="flex items-center justify-end space-x-3 w-full sm:w-1/4">
+                <!-- Visual VU Meter Bar for Output -->
+                <div class="flex flex-col items-end space-y-1">
+                    <span class="text-[10px] font-mono text-indigo-400 font-bold" id="outputVolPercent">100%</span>
+                    <div class="w-16 h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800 flex items-center px-0.5">
+                        <div id="outputVuBar" class="h-1 bg-brand-500 rounded-full transition-all duration-75" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button onclick="toggleMute()" id="muteBtn" class="text-slate-400 hover:text-white text-xs">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1" oninput="setVolume(this.value)" class="w-20 h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-brand-500">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="recordModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative space-y-5">
+            <button onclick="closeModal('recordModal')" class="absolute top-5 right-5 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="text-center space-y-1">
+                <div class="inline-flex p-3 rounded-2xl bg-red-500/10 text-red-400 mb-1">
+                    <i class="fa-solid fa-microphone-lines text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white">Record Voice Line</h3>
+                <p class="text-xs text-slate-400">Speak into your microphone with live level sensing</p>
+            </div>
+
+            <!-- Microphone Volume Indicator & Wave visualizer -->
+            <div class="bg-slate-950 rounded-2xl p-4 border border-slate-800 text-center space-y-3">
+                <canvas id="recordVisualizer" width="300" height="50" class="w-full h-12 rounded"></canvas>
+                
+                <!-- Live Mic Input Level Meter Bar -->
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[10px] font-mono text-slate-400 px-1">
+                        <span>MIC INPUT VOL</span>
+                        <span id="micVolPercent" class="text-red-400 font-bold">0%</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-900 rounded-full border border-slate-800 overflow-hidden p-0.5">
+                        <div id="micVuBar" class="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full transition-all duration-75" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div class="font-mono text-2xl font-bold text-slate-200" id="recordTimer">00:00.0</div>
+
+                <div class="flex justify-center items-center space-x-4 pt-1">
+                    <button id="startRecordBtn" onclick="startRecording()" class="w-14 h-14 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center shadow-lg shadow-red-600/40 transition hover:scale-105 active:scale-95">
+                        <i class="fa-solid fa-microphone text-xl"></i>
+                    </button>
+                    <button id="stopRecordBtn" onclick="stopRecording()" disabled class="w-14 h-14 rounded-full bg-slate-800 text-slate-500 opacity-50 flex items-center justify-center transition">
+                        <i class="fa-solid fa-square text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="recordForm" class="space-y-3 opacity-50 pointer-events-none transition-all">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Voice Line Title</label>
+                    <input type="text" id="recTitle" placeholder="e.g. My Voice Clip" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Uploader Name</label>
+                    <input type="text" id="recUploader" placeholder="Your name" value="VoiceArtist" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+
+                <button id="saveRecBtn" onclick="saveRecordedVoice()" disabled class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-brand-600/30 disabled:opacity-50">
+                    Save to Database
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="uploadModal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative space-y-5">
+            <button onclick="closeModal('uploadModal')" class="absolute top-5 right-5 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="text-center space-y-1">
+                <div class="inline-flex p-3 rounded-2xl bg-indigo-500/10 text-indigo-400 mb-1">
+                    <i class="fa-solid fa-file-audio text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white">Upload Audio File</h3>
+                <p class="text-xs text-slate-400">Save MP3, WAV, OGG, or M4A voice files</p>
+            </div>
+
+            <div id="dropZone" onclick="document.getElementById('audioFileInput').click()" class="border-2 border-dashed border-slate-700 hover:border-brand-500 bg-slate-950/60 rounded-2xl p-6 text-center cursor-pointer transition">
+                <input type="file" id="audioFileInput" accept="audio/*" onchange="handleFileSelect(event)" class="hidden">
+                <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-500 mb-2"></i>
+                <p id="fileSelectText" class="text-xs font-semibold text-slate-300">Click to browse audio file</p>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Voice Line Title</label>
+                    <input type="text" id="upTitle" placeholder="e.g. Action Sound" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Uploader Name</label>
+                    <input type="text" id="upUploader" placeholder="Your name" value="AudioMaster" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500">
+                </div>
+
+                <button id="submitUploadBtn" onclick="submitUploadedFile()" class="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-sm transition shadow-lg shadow-brand-600/30">
+                    Save to Database
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed top-20 right-5 z-50 bg-slate-800 border border-slate-700 text-slate-200 text-xs px-4 py-3 rounded-xl shadow-xl flex items-center space-x-2 transform translate-y-[-100px] opacity-0 transition-all pointer-events-none">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-green-400 text-sm"></i>
+        <span id="toastMsg">Notification</span>
+    </div>
+
+    <script>
+        const DB_NAME = 'VoiceVaultDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'voice_lines';
+        let db = null;
+
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const dbInstance = e.target.result;
+                    if (!dbInstance.objectStoreNames.contains(STORE_NAME)) {
+                        dbInstance.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve(db);
+                };
+                request.onerror = (e) => {
+                    console.error("IndexedDB error:", e);
+                    reject(e);
+                };
+            });
+        }
+
+        function saveVoiceToDB(item) {
+            return new Promise((resolve, reject) => {
+                if (!db) return reject('DB not open');
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.put(item);
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e);
+            });
+        }
+
+        function getAllVoicesFromDB() {
+            return new Promise((resolve, reject) => {
+                if (!db) return resolve([]);
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = (e) => reject(e);
+            });
+        }
+
+        function deleteVoiceFromDB(id) {
+            return new Promise((resolve, reject) => {
+                if (!db) return resolve();
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.delete(id);
+                tx.oncomplete = () => resolve();
+                tx.onerror = (e) => reject(e);
+            });
+        }
+
+        let voiceLines = [];
+        let searchQuery = '';
+        let currentAudio = new Audio();
+        let currentTrackId = null;
+        let isPlaying = false;
+
+        // Recording Audio Nodes
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordStartTime = 0;
+        let recordTimerInterval = null;
+        let recordedBlob = null;
+        let micAudioCtx = null, micAnalyser = null, micAnimFrame = null;
+
+        // Output Audio Nodes
+        let outputAudioCtx = null, outputAnalyser = null, outputAnimFrame = null;
+
+        async function loadVoiceLinesFromDatabase() {
+            try {
+                await initIndexedDB();
+                const items = await getAllVoicesFromDB();
+                // Re-create Blob URLs for binary blobs stored in IndexedDB
+                voiceLines = items.map(item => {
+                    let audioUrl = item.audioUrl;
+                    if (item.audioBlob) {
+                        audioUrl = URL.createObjectURL(item.audioBlob);
+                    }
+                    return { ...item, audioUrl };
+                });
+                renderVoiceLines();
+            } catch(e) {
+                console.error("Error loading voice lines:", e);
+            }
+        }
+
+        function renderVoiceLines() {
+            const grid = document.getElementById('voiceGrid');
+            const emptyState = document.getElementById('emptyState');
+            const countBadge = document.getElementById('voiceCountBadge');
+            const sortBy = document.getElementById('sortBySelect').value;
+
+            let filtered = voiceLines.filter(item => {
+                return item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       item.uploader.toLowerCase().includes(searchQuery.toLowerCase());
+            });
+
+            filtered.sort((a, b) => {
+                if (sortBy === 'popular') return b.likes - a.likes;
+                if (sortBy === 'alpha') return a.title.localeCompare(b.title);
+                return b.timestamp - a.timestamp;
+            });
+
+            countBadge.innerText = filtered.length;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            grid.innerHTML = filtered.map(item => {
+                const isCurrentPlaying = currentTrackId === item.id && isPlaying;
+                return `
+                    <div class="bg-slate-900/90 border ${isCurrentPlaying ? 'border-brand-500/80 ring-1 ring-brand-500/50' : 'border-slate-800'} hover:border-slate-700 rounded-2xl p-4 transition-all duration-200 flex flex-col justify-between group shadow-lg">
+                        <div class="space-y-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <span class="text-[11px] font-mono text-slate-500"><i class="fa-solid fa-clock text-slate-600 mr-1"></i>${item.duration || '0:00'}</span>
+                                <button onclick="deleteVoiceLine('${item.id}')" class="text-slate-600 hover:text-red-400 transition text-xs p-1" title="Delete Voice">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+
+                            <div>
+                                <h3 class="font-bold text-slate-100 text-base group-hover:text-brand-400 transition truncate">${escapeHtml(item.title)}</h3>
+                                <p class="text-xs text-slate-400 flex items-center space-x-1 mt-0.5">
+                                    <span>by</span>
+                                    <span class="text-slate-300 font-medium">${escapeHtml(item.uploader)}</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 mt-3 border-t border-slate-800/80 flex items-center justify-between">
+                            <button onclick="playVoiceLine('${item.id}')" class="flex items-center space-x-2.5 ${isCurrentPlaying ? 'bg-brand-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-200'} px-3.5 py-2 rounded-xl text-xs font-semibold transition active:scale-95">
+                                <i class="fa-solid ${isCurrentPlaying ? 'fa-pause' : 'fa-play'}"></i>
+                                <span>${isCurrentPlaying ? 'Pause' : 'Listen'}</span>
+                            </button>
+
+                            <button onclick="toggleLike('${item.id}')" class="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border ${item.liked ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'border-slate-800 text-slate-400 hover:text-slate-200'} text-xs font-semibold transition">
+                                <i class="${item.liked ? 'fa-solid text-red-500' : 'fa-regular'} fa-heart"></i>
+                                <span>${item.likes}</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function playVoiceLine(id) {
+            const track = voiceLines.find(t => t.id === id);
+            if (!track) return;
+
+            if (currentTrackId === id) {
+                if (isPlaying) {
+                    currentAudio.pause();
+                    isPlaying = false;
+                } else {
+                    currentAudio.play();
+                    isPlaying = true;
+                }
+            } else {
+                currentTrackId = id;
+                currentAudio.src = track.audioUrl;
+                currentAudio.play().then(() => {
+                    isPlaying = true;
+                    setupOutputAudioContext();
+                }).catch(err => {
+                    showToast("Playback error: " + err.message, "error");
+                });
+
+                document.getElementById('playerTitle').innerText = track.title;
+                document.getElementById('playerUploader').innerText = `by ${track.uploader}`;
+            }
+
+            updatePlayerUI();
+            renderVoiceLines();
+        }
+
+        function setupOutputAudioContext() {
+            if (!outputAudioCtx) {
+                outputAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                outputAnalyser = outputAudioCtx.createAnalyser();
+                outputAnalyser.fftSize = 64;
+                try {
+                    const source = outputAudioCtx.createMediaElementSource(currentAudio);
+                    source.connect(outputAnalyser);
+                    outputAnalyser.connect(outputAudioCtx.destination);
+                } catch(e) {}
+            }
+            if (outputAudioCtx.state === 'suspended') {
+                outputAudioCtx.resume();
+            }
+            drawOutputVuMeter();
+        }
+
+        function drawOutputVuMeter() {
+            if (!outputAnalyser) return;
+            const dataArr = new Uint8Array(outputAnalyser.frequencyBinCount);
+            outputAnalyser.getByteFrequencyData(dataArr);
+
+            let sum = 0;
+            for (let i = 0; i < dataArr.length; i++) {
+                sum += dataArr[i];
+            }
+            const avg = sum / dataArr.length;
+            const percentage = Math.min(100, Math.round((avg / 128) * 100));
+
+            const vuBar = document.getElementById('outputVuBar');
+            const percentLabel = document.getElementById('outputVolPercent');
+            
+            if (vuBar && isPlaying) {
+                vuBar.style.width = `${percentage}%`;
+                percentLabel.innerText = `${percentage}%`;
+            } else if (vuBar) {
+                vuBar.style.width = `0%`;
+                percentLabel.innerText = `0%`;
+            }
+
+            outputAnimFrame = requestAnimationFrame(drawOutputVuMeter);
+        }
+
+        function updatePlayerUI() {
+            const btn = document.getElementById('mainPlayBtn');
+            btn.innerHTML = `<i class="fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'} text-sm ml-0.5"></i>`;
+        }
+
+        currentAudio.addEventListener('timeupdate', () => {
+            const progress = (currentAudio.currentTime / (currentAudio.duration || 1)) * 100;
+            document.getElementById('playerProgressBar').value = progress || 0;
+            document.getElementById('currentTime').innerText = formatTime(currentAudio.currentTime);
+            document.getElementById('totalTime').innerText = formatTime(currentAudio.duration || 0);
+        });
+
+        currentAudio.addEventListener('ended', () => {
+            isPlaying = false;
+            updatePlayerUI();
+            renderVoiceLines();
+        });
+
+        function seekAudio(val) {
+            if (currentAudio.duration) {
+                currentAudio.currentTime = (val / 100) * currentAudio.duration;
+            }
+        }
+
+        function toggleMainPlay() {
+            if (!currentTrackId && voiceLines.length > 0) {
+                playVoiceLine(voiceLines[0].id);
+                return;
+            }
+            if (isPlaying) {
+                currentAudio.pause();
+                isPlaying = false;
+            } else {
+                currentAudio.play();
+                isPlaying = true;
+            }
+            updatePlayerUI();
+            renderVoiceLines();
+        }
+
+        function skipTime(secs) {
+            currentAudio.currentTime = Math.max(0, Math.min(currentAudio.duration || 0, currentAudio.currentTime + secs));
+        }
+
+        function toggleMute() {
+            currentAudio.muted = !currentAudio.muted;
+            document.getElementById('muteBtn').innerHTML = `<i class="fa-solid fa-volume-${currentAudio.muted ? 'xmark' : 'high'}"></i>`;
+        }
+
+        function setVolume(val) {
+            currentAudio.volume = val;
+            const percent = Math.round(val * 100);
+            document.getElementById('outputVolPercent').innerText = `${percent}%`;
+        }
+
+        function cycleSpeed() {
+            const speeds = [1.0, 1.25, 1.5, 2.0, 0.75];
+            const currentSpeed = currentAudio.playbackRate;
+            const nextIdx = (speeds.indexOf(currentSpeed) + 1) % speeds.length;
+            currentAudio.playbackRate = speeds[nextIdx];
+            document.getElementById('speedBtn').innerText = `${speeds[nextIdx]}x`;
+        }
+
+        function toggleLoop() {
+            currentAudio.loop = !currentAudio.loop;
+            document.getElementById('loopBtn').classList.toggle('text-brand-400', currentAudio.loop);
+        }
+
+        function toggleLike(id) {
+            const track = voiceLines.find(t => t.id === id);
+            if (track) {
+                track.liked = !track.liked;
+                track.likes += track.liked ? 1 : -1;
+                saveVoiceToDB(track);
+                renderVoiceLines();
+            }
+        }
+
+        async function deleteVoiceLine(id) {
+            await deleteVoiceFromDB(id);
+            voiceLines = voiceLines.filter(item => item.id !== id);
+            if (currentTrackId === id) {
+                currentAudio.pause();
+                isPlaying = false;
+                currentTrackId = null;
+                updatePlayerUI();
+            }
+            renderVoiceLines();
+            showToast('Voice line deleted', 'info');
+        }
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    document.getElementById('recordForm').classList.remove('opacity-50', 'pointer-events-none');
+                    document.getElementById('saveRecBtn').disabled = false;
+                };
+
+                mediaRecorder.start();
+                recordStartTime = Date.now();
+                recordTimerInterval = setInterval(updateRecordTimer, 100);
+
+                document.getElementById('startRecordBtn').disabled = true;
+                document.getElementById('startRecordBtn').classList.add('pulse-ring');
+                document.getElementById('stopRecordBtn').disabled = false;
+                document.getElementById('stopRecordBtn').classList.remove('opacity-50', 'text-slate-500');
+                document.getElementById('stopRecordBtn').classList.add('bg-slate-700', 'text-white', 'hover:bg-slate-600');
+
+                setupMicVuMeter(stream);
+            } catch(err) {
+                showToast('Microphone access denied or unavailable', 'error');
+            }
+        }
+
+        function setupMicVuMeter(stream) {
+            micAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            micAnalyser = micAudioCtx.createAnalyser();
+            const source = micAudioCtx.createMediaStreamSource(stream);
+            source.connect(micAnalyser);
+            micAnalyser.fftSize = 64;
+
+            const canvas = document.getElementById('recordVisualizer');
+            const ctx = canvas.getContext('2d');
+            const dataArr = new Uint8Array(micAnalyser.frequencyBinCount);
+
+            function draw() {
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    micAnimFrame = requestAnimationFrame(draw);
+                    micAnalyser.getByteFrequencyData(dataArr);
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    let sum = 0;
+                    const barWidth = (canvas.width / dataArr.length) * 1.5;
+                    let x = 0;
+                    for (let i = 0; i < dataArr.length; i++) {
+                        sum += dataArr[i];
+                        const barHeight = (dataArr[i] / 255) * canvas.height;
+                        ctx.fillStyle = '#ef4444';
+                        ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
+                        x += barWidth;
+                    }
+
+                    // Calculate Mic Level Percentage
+                    const avg = sum / dataArr.length;
+                    const percent = Math.min(100, Math.round((avg / 128) * 100));
+                    document.getElementById('micVuBar').style.width = `${percent}%`;
+                    document.getElementById('micVolPercent').innerText = `${percent}%`;
+                }
+            }
+            draw();
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                clearInterval(recordTimerInterval);
+                if (micAnimFrame) cancelAnimationFrame(micAnimFrame);
+
+                document.getElementById('startRecordBtn').disabled = false;
+                document.getElementById('startRecordBtn').classList.remove('pulse-ring');
+                document.getElementById('stopRecordBtn').disabled = true;
+                document.getElementById('stopRecordBtn').classList.add('opacity-50', 'text-slate-500');
+                
+                document.getElementById('micVuBar').style.width = `0%`;
+                document.getElementById('micVolPercent').innerText = `0%`;
+            }
+        }
+
+        function updateRecordTimer() {
+            const elapsed = (Date.now() - recordStartTime) / 1000;
+            document.getElementById('recordTimer').innerText = formatTimeWithMs(elapsed);
+        }
+
+        async function saveRecordedVoice() {
+            const title = document.getElementById('recTitle').value.trim() || 'Recorded Voice Line';
+            const uploader = document.getElementById('recUploader').value.trim() || 'VoiceArtist';
+
+            if (!recordedBlob) return;
+
+            const durationSecs = ((Date.now() - recordStartTime) / 1000).toFixed(1);
+            const id = 'rec-' + Date.now();
+
+            const newTrack = {
+                id,
+                title,
+                uploader,
+                likes: 1,
+                duration: `${durationSecs}s`,
+                audioBlob: recordedBlob,
+                timestamp: Date.now(),
+                liked: true
+            };
+
+            await saveVoiceToDB(newTrack);
+            newTrack.audioUrl = URL.createObjectURL(recordedBlob);
+            voiceLines.unshift(newTrack);
+
+            renderVoiceLines();
+            closeModal('recordModal');
+            showToast('Voice line saved to IndexedDB database!');
+        }
+
+        let selectedFile = null;
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('fileSelectText').innerText = `Selected: ${file.name}`;
+            }
+        }
+
+        async function submitUploadedFile() {
+            const title = document.getElementById('upTitle').value.trim() || (selectedFile ? selectedFile.name.replace(/\.[^/.]+$/, "") : 'Uploaded Voice');
+            const uploader = document.getElementById('upUploader').value.trim() || 'AudioUser';
+
+            if (!selectedFile) {
+                showToast('Please select an audio file first', 'error');
+                return;
+            }
+
+            const tempAudio = new Audio(URL.createObjectURL(selectedFile));
+            tempAudio.onloadedmetadata = async () => {
+                const durationSecs = tempAudio.duration ? tempAudio.duration.toFixed(1) + 's' : '1.5s';
+                const id = 'up-' + Date.now();
+
+                const newTrack = {
+                    id,
+                    title,
+                    uploader,
+                    likes: 0,
+                    duration: durationSecs,
+                    audioBlob: selectedFile,
+                    timestamp: Date.now(),
+                    liked: false
+                };
+
+                await saveVoiceToDB(newTrack);
+                newTrack.audioUrl = URL.createObjectURL(selectedFile);
+                voiceLines.unshift(newTrack);
+
+                renderVoiceLines();
+                closeModal('uploadModal');
+                showToast('Audio file saved to database!');
+            };
+        }
+
+        function handleSearch() {
+            const input = document.getElementById('searchInput');
+            searchQuery = input.value;
+            document.getElementById('clearSearchBtn').classList.toggle('hidden', searchQuery === '');
+            renderVoiceLines();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            handleSearch();
+        }
+
+        function resetFilters() {
+            searchQuery = '';
+            document.getElementById('searchInput').value = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            renderVoiceLines();
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+            if (id === 'recordModal') stopRecording();
+        }
+
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = msg;
+            toastIcon.className = type === 'error' ? 'fa-solid fa-circle-exclamation text-red-400 text-sm' : 'fa-solid fa-circle-check text-green-400 text-sm';
+
+            toast.classList.remove('translate-y-[-100px]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-100px]', 'opacity-0');
+            }, 3000);
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function formatTimeWithMs(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 10);
+            return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}.${ms}`;
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        window.onload = () => {
+            loadVoiceLinesFromDatabase();
+        };
+    </script>
+</body>
+</html>
